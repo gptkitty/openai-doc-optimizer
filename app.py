@@ -31,12 +31,12 @@ def count_tokens(text, model="gpt-4"):
         return len(encoder.encode(text))
 
 # Main app layout
-st.title("OpenAI Research Document Optimizer")
-st.subheader("Optimize OpenAI research documents for RAG systems")
+st.title("Deep Research Document Optimizer")
+st.subheader("Optimize deep research documents for RAG systems")
 
 with st.expander("About this tool", expanded=True):
     st.markdown("""
-    This specialized tool optimizes OpenAI research documents for Retrieval-Augmented Generation (RAG) systems by:
+    This specialized tool optimizes OpenAI deep research documents for Retrieval-Augmented Generation (RAG) systems by:
     
     - Extracting URLs and replacing them with numbered citations
     - Creating a references section at the end of the document
