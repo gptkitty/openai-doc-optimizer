@@ -34,6 +34,13 @@ def count_tokens(text, model="gpt-4"):
 st.title("Deep Research Document Optimizer")
 st.subheader("Optimize deep research documents for RAG systems")
 
+# Add a clear button in the top right
+col1, col2 = st.columns([5, 1])
+with col2:
+    if st.button("Clear All", type="secondary", key="clear_button"):
+        st.session_state.clear()
+        st.experimental_rerun()
+
 with st.expander("About this tool", expanded=True):
     st.markdown("""
     This specialized tool optimizes OpenAI deep research documents for Retrieval-Augmented Generation (RAG) systems by:
@@ -66,10 +73,23 @@ if uploaded_files:
     # Create a container for the file processing results
     results_container = st.container()
     
+    # Button row with Process and Clear Results buttons
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        process_clicked = st.button("Process Files", key="process_button")
+    with col2:
+        if st.button("Clear Results", key="clear_results_button", type="secondary"):
+            if 'processed_files' in st.session_state:
+                del st.session_state.processed_files
+            st.experimental_rerun()
+    
     # Process button
     processed_files = {}
-    if st.button("Process Files", key="process_button"):
+    if process_clicked:
         with st.spinner("Processing files..."):
+            # Clear previous results when processing new files
+            if 'processed_files' in st.session_state:
+                del st.session_state.processed_files
             for uploaded_file in uploaded_files:
                 # Create temp files for processing
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as temp_input:
