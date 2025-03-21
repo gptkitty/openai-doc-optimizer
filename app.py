@@ -66,71 +66,68 @@ if uploaded_files:
     # Create a container for the file processing results
     results_container = st.container()
     
-    # Store processed results in session state to persist across reruns
-    if 'processed_results' not in st.session_state:
-        st.session_state.processed_results = []
-
     # Process button
-    if st.button("Process Files") or (hasattr(st.session_state, 'processed_results') and st.session_state.processed_results):
-        if st.button("Process Files"):
-            # Clear previous results when processing new files
-            st.session_state.processed_results = []
+    processed_files = {}
+    if st.button("Process Files", key="process_button"):
+        with st.spinner("Processing files..."):
+            for uploaded_file in uploaded_files:
+                # Create temp files for processing
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as temp_input:
+                    temp_input.write(uploaded_file.getvalue())
+                    input_path = temp_input.name
+                
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as temp_output:
+                    output_path = temp_output.name
+                
+                # Process the file
+                process_markdown_file(input_path, output_path, group_domains, keep_domains)
+                
+                # Read the processed file
+                with open(output_path, 'r', encoding='utf-8') as f:
+                    processed_content = f.read()
+                
+                # Calculate stats
+                original_content = uploaded_file.getvalue().decode('utf-8')
+                original_size = len(original_content.encode('utf-8'))
+                processed_size = len(processed_content.encode('utf-8'))
+                original_tokens = count_tokens(original_content, model_option)
+                processed_tokens = count_tokens(processed_content, model_option)
+                
+                # Store in dictionary for this session
+                processed_files[uploaded_file.name] = {
+                    'original_content': original_content,
+                    'processed_content': processed_content,
+                    'original_size': original_size,
+                    'processed_size': processed_size,
+                    'original_tokens': original_tokens,
+                    'processed_tokens': processed_tokens
+                }
+                
+                # Clean up temp files
+                os.unlink(input_path)
+                os.unlink(output_path)
             
-            with st.spinner("Processing files..."):
-                for uploaded_file in uploaded_files:
-                    # Create temp files for processing
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as temp_input:
-                        temp_input.write(uploaded_file.getvalue())
-                        input_path = temp_input.name
-                    
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as temp_output:
-                        output_path = temp_output.name
-                    
-                    # Process the file
-                    process_markdown_file(input_path, output_path, group_domains, keep_domains)
-                    
-                    # Read the processed file
-                    with open(output_path, 'r', encoding='utf-8') as f:
-                        processed_content = f.read()
-                    
-                    # Calculate stats
-                    original_content = uploaded_file.getvalue().decode('utf-8')
-                    original_size = len(original_content.encode('utf-8'))
-                    processed_size = len(processed_content.encode('utf-8'))
-                    original_tokens = count_tokens(original_content, model_option)
-                    processed_tokens = count_tokens(processed_content, model_option)
-                    
-                    # Store results in session state
-                    st.session_state.processed_results.append({
-                        'file_name': uploaded_file.name,
-                        'original_content': original_content,
-                        'processed_content': processed_content,
-                        'original_size': original_size,
-                        'processed_size': processed_size,
-                        'original_tokens': original_tokens,
-                        'processed_tokens': processed_tokens
-                    })
-                    
-                    # Clean up temp files
-                    os.unlink(input_path)
-                    os.unlink(output_path)
-        
-        # Display all results from session state
+            # Store in session state so we can access across interactions
+            if processed_files:
+                st.session_state.processed_files = processed_files
+    
+    # Display processed files if available
+    if hasattr(st.session_state, 'processed_files') and st.session_state.processed_files:
         with results_container:
-            for result in st.session_state.processed_results:
-                st.subheader(f"Results for {result['file_name']}")
+            for file_name, result in st.session_state.processed_files.items():
+                st.subheader(f"Results for {file_name}")
                 
                 # Side-by-side comparison
                 col1, col2 = st.columns(2)
                 
                 with col1:
                     st.markdown("### Original Document")
-                    st.text_area("", result['original_content'], height=300, key=f"orig_{result['file_name']}")
+                    st.text_area("", result['original_content'], height=300, key=f"orig_{file_name}")
                     st.info(f"Size: {result['original_size']} bytes | Tokens: {result['original_tokens']}")
                 
                 with col2:
                     st.markdown("### Optimized Document")
-                    st.text_area("", result['processed_content'], height=300, key=f"proc_{result['file_name']}")
+                    st.text_area("", result['processed_content'], height=300, key=f"proc_{file_name}")
                     st.info(f"Size: {result['processed_size']} bytes | Tokens: {result['processed_tokens']}")
                 
                 # Token savings
@@ -148,9 +145,9 @@ if uploaded_files:
                 st.download_button(
                     label="Download Optimized File",
                     data=result['processed_content'].encode('utf-8'),
-                    file_name=f"optimized_{result['file_name']}",
+                    file_name=f"optimized_{file_name}",
                     mime="text/markdown",
-                    key=f"download_{result['file_name']}"
+                    key=f"download_{file_name}"
                 )
                 
                 st.markdown("---")
