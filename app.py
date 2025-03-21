@@ -31,8 +31,8 @@ def count_tokens(text, model="gpt-4"):
         return len(encoder.encode(text))
 
 # Main app layout
-st.title("OpenAI Research Document Optimizer")
-st.subheader("Optimize OpenAI research documents for RAG systems")
+st.title("Deep Research Document Optimizer")
+st.subheader("Optimize OpenAI deep research documents for RAG systems")
 
 with st.expander("About this tool", expanded=True):
     st.markdown("""
@@ -42,6 +42,7 @@ with st.expander("About this tool", expanded=True):
     - Creating a references section at the end of the document
     - Grouping references by domain (optional)
     - Maintaining domain names in citations (optional)
+    - NOTE: This is not a general markdown optimizer! Non-deep research documents may result in an increase in tokens
     
     The result is a more token-efficient document that preserves all source information, typically reducing token usage by ~20%.
     """)

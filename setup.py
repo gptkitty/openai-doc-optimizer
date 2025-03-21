@@ -11,7 +11,7 @@ setup(
     version="0.1.0",
     author="Carlos Chavarria",
     author_email="hello@productcarlos.com",
-    description="A tool to optimize OpenAI research documents for RAG systems",
+    description="A tool to optimize OpenAI deep research documents for RAG systems",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/gptkitty/openai-doc-optimizer",
