@@ -42,7 +42,8 @@ with st.expander("About this tool", expanded=True):
     - Creating a references section at the end of the document
     - Grouping references by domain (optional)
     - Maintaining domain names in citations (optional)
-    - NOTE: This is not a general markdown optimizer! Non-deep research documents may result in an increase in tokens
+    - **Note**: This is not a general markdown optimizer! Non-deep research documents may result in an increase in tokens
+    - **Privacy Notice**: Your data is processed entirely in-memory and is cleared when the app restarts, your session ends, or you close the browser tab. No document content is stored or retained after processing.
     
     The result is a more token-efficient document that preserves all source information, typically reducing token usage by ~20%.
     """)
