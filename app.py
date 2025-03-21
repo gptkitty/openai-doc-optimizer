@@ -159,34 +159,27 @@ if uploaded_files:
                     else:
                         st.info("No change in token count")
                     
-                    # Create a container for download and celebration
-                    download_col1, download_col2 = st.columns([1, 2])
+                    # Download button and celebration
+                    download_key = f"downloaded_{file_name}"
+                    if download_key not in st.session_state:
+                        st.session_state[download_key] = False
                     
-                    with download_col1:
-                        # Download button for processed file
-                        download_clicked = st.download_button(
-                            label="Download Optimized File",
-                            data=result['processed_content'].encode('utf-8'),
-                            file_name=f"optimized_{file_name}",
-                            mime="text/markdown",
-                            key=f"download_{file_name}"
-                        )
+                    # Download button
+                    download_clicked = st.download_button(
+                        label="Download Optimized File",
+                        data=result['processed_content'].encode('utf-8'),
+                        file_name=f"optimized_{file_name}",
+                        mime="text/markdown",
+                        key=f"download_{file_name}"
+                    )
                     
-                    with download_col2:
-                        # Track downloads in session state
-                        download_key = f"downloaded_{file_name}"
-                        if download_key not in st.session_state:
-                            st.session_state[download_key] = False
-                        
-                        # Check if button was just clicked
-                        if download_clicked:
-                            st.session_state[download_key] = True
-                        
-                        # Show celebration if downloaded
-                        if st.session_state[download_key]:
-                            st.success("🎉 Successfully optimized and downloaded! Your RAG system will thank you!")
-                            # Reset after 3 seconds (doesn't actually work in Streamlit, but keeps the success message for one refresh)
-                            st.session_state[download_key] = False
+                    # Check if button was just clicked
+                    if download_clicked:
+                        st.session_state[download_key] = True
+                    
+                    # Show celebration if downloaded
+                    if st.session_state[download_key]:
+                        st.success("🎉 Successfully optimized and downloaded! Your RAG system will thank you!")
                     
                     st.markdown("---")
 
