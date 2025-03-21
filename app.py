@@ -13,7 +13,7 @@ from rag_optimizer import process_markdown_file
 
 # Set page configuration
 st.set_page_config(
-    page_title="OpenAI Document Optimizer",
+    page_title="Deep Research Document Optimizer",
     page_icon="📄",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -31,8 +31,8 @@ def count_tokens(text, model="gpt-4"):
         return len(encoder.encode(text))
 
 # Main app layout
-st.title("Deep Research Document Optimizer")
-st.subheader("Optimize OpenAI deep research documents for RAG systems")
+st.title("OpenAI Research Document Optimizer")
+st.subheader("Optimize OpenAI research documents for RAG systems")
 
 with st.expander("About this tool", expanded=True):
     st.markdown("""
@@ -44,8 +44,6 @@ with st.expander("About this tool", expanded=True):
     - Maintaining domain names in citations (optional)
     - **Note**: This is not a general markdown optimizer! Non-deep research documents may result in an increase in tokens
     - **Privacy Notice**: Your data is processed entirely in-memory and is cleared when the app restarts, your session ends, or you close the browser tab. No document content is stored or retained after processing.
-    
-    The result is a more token-efficient document that preserves all source information, typically reducing token usage by ~20%.
     """)
 
 # Sidebar options
@@ -68,73 +66,94 @@ if uploaded_files:
     # Create a container for the file processing results
     results_container = st.container()
     
+    # Store processed results in session state to persist across reruns
+    if 'processed_results' not in st.session_state:
+        st.session_state.processed_results = []
+
     # Process button
-    if st.button("Process Files"):
-        with st.spinner("Processing files..."):
-            for uploaded_file in uploaded_files:
-                # Create temp files for processing
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as temp_input:
-                    temp_input.write(uploaded_file.getvalue())
-                    input_path = temp_input.name
+    if st.button("Process Files") or (hasattr(st.session_state, 'processed_results') and st.session_state.processed_results):
+        if st.button("Process Files"):
+            # Clear previous results when processing new files
+            st.session_state.processed_results = []
+            
+            with st.spinner("Processing files..."):
+                for uploaded_file in uploaded_files:
+                    # Create temp files for processing
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as temp_input:
+                        temp_input.write(uploaded_file.getvalue())
+                        input_path = temp_input.name
+                    
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as temp_output:
+                        output_path = temp_output.name
+                    
+                    # Process the file
+                    process_markdown_file(input_path, output_path, group_domains, keep_domains)
+                    
+                    # Read the processed file
+                    with open(output_path, 'r', encoding='utf-8') as f:
+                        processed_content = f.read()
+                    
+                    # Calculate stats
+                    original_content = uploaded_file.getvalue().decode('utf-8')
+                    original_size = len(original_content.encode('utf-8'))
+                    processed_size = len(processed_content.encode('utf-8'))
+                    original_tokens = count_tokens(original_content, model_option)
+                    processed_tokens = count_tokens(processed_content, model_option)
+                    
+                    # Store results in session state
+                    st.session_state.processed_results.append({
+                        'file_name': uploaded_file.name,
+                        'original_content': original_content,
+                        'processed_content': processed_content,
+                        'original_size': original_size,
+                        'processed_size': processed_size,
+                        'original_tokens': original_tokens,
+                        'processed_tokens': processed_tokens
+                    })
+                    
+                    # Clean up temp files
+                    os.unlink(input_path)
+                    os.unlink(output_path)
+        
+        # Display all results from session state
+        with results_container:
+            for result in st.session_state.processed_results:
+                st.subheader(f"Results for {result['file_name']}")
                 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".md") as temp_output:
-                    output_path = temp_output.name
+                # Side-by-side comparison
+                col1, col2 = st.columns(2)
                 
-                # Process the file
-                process_markdown_file(input_path, output_path, group_domains, keep_domains)
+                with col1:
+                    st.markdown("### Original Document")
+                    st.text_area("", result['original_content'], height=300, key=f"orig_{result['file_name']}")
+                    st.info(f"Size: {result['original_size']} bytes | Tokens: {result['original_tokens']}")
                 
-                # Read the processed file
-                with open(output_path, 'r', encoding='utf-8') as f:
-                    processed_content = f.read()
+                with col2:
+                    st.markdown("### Optimized Document")
+                    st.text_area("", result['processed_content'], height=300, key=f"proc_{result['file_name']}")
+                    st.info(f"Size: {result['processed_size']} bytes | Tokens: {result['processed_tokens']}")
                 
-                # Calculate stats
-                original_content = uploaded_file.getvalue().decode('utf-8')
-                original_size = len(original_content.encode('utf-8'))
-                processed_size = len(processed_content.encode('utf-8'))
-                original_tokens = count_tokens(original_content, model_option)
-                processed_tokens = count_tokens(processed_content, model_option)
+                # Token savings
+                token_diff = result['original_tokens'] - result['processed_tokens']
+                token_percent = (token_diff / result['original_tokens'] * 100) if result['original_tokens'] > 0 else 0
                 
-                # Display results in the container
-                with results_container:
-                    st.subheader(f"Results for {uploaded_file.name}")
-                    
-                    # Side-by-side comparison
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.markdown("### Original Document")
-                        st.text_area("", original_content, height=300)
-                        st.info(f"Size: {original_size} bytes | Tokens: {original_tokens}")
-                    
-                    with col2:
-                        st.markdown("### Optimized Document")
-                        st.text_area("", processed_content, height=300)
-                        st.info(f"Size: {processed_size} bytes | Tokens: {processed_tokens}")
-                    
-                    # Token savings
-                    token_diff = original_tokens - processed_tokens
-                    token_percent = (token_diff / original_tokens * 100) if original_tokens > 0 else 0
-                    
-                    if token_diff > 0:
-                        st.success(f"Saved {token_diff} tokens ({token_percent:.1f}% reduction)")
-                    elif token_diff < 0:
-                        st.warning(f"Increased by {abs(token_diff)} tokens ({abs(token_percent):.1f}% increase)")
-                    else:
-                        st.info("No change in token count")
-                    
-                    # Download button for processed file
-                    st.download_button(
-                        label="Download Optimized File",
-                        data=processed_content.encode('utf-8'),
-                        file_name=f"optimized_{uploaded_file.name}",
-                        mime="text/markdown"
-                    )
-                    
-                    st.markdown("---")
+                if token_diff > 0:
+                    st.success(f"Saved {token_diff} tokens ({token_percent:.1f}% reduction)")
+                elif token_diff < 0:
+                    st.warning(f"Increased by {abs(token_diff)} tokens ({abs(token_percent):.1f}% increase)")
+                else:
+                    st.info("No change in token count")
                 
-                # Clean up temp files
-                os.unlink(input_path)
-                os.unlink(output_path)
+                # Download button for processed file
+                st.download_button(
+                    label="Download Optimized File",
+                    data=result['processed_content'].encode('utf-8'),
+                    file_name=f"optimized_{result['file_name']}",
+                    mime="text/markdown",
+                    key=f"download_{result['file_name']}"
+                )
+                
+                st.markdown("---")
 
 else:
     st.info("Please upload one or more Markdown files to begin")
