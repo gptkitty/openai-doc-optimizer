@@ -188,4 +188,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.markdown("Made with ❤️ by Carlos Chavarria | [GitHub Repository](https://github.com/gptkitty/openai-doc-optimizer)")
+st.markdown("Made with ❤️ by Carlos | [GitHub Repository](https://github.com/gptkitty/openai-doc-optimizer)")
